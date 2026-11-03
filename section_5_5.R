@@ -1,16 +1,12 @@
-# =====================================================================
 # Section 5.5: Multiple linear regression, assumption checking, prediction
 # Dataset: 80 Cereals (Kaggle) - https://www.kaggle.com/datasets/crawford/80-cereals
 # Put cereal.csv in the working directory, then run the whole script.
 # Packages: car, lmtest   (install.packages(c("car", "lmtest")))
 # Figures are saved in figures_5_5/
-# =====================================================================
 suppressMessages({ library(car); library(lmtest) })
 dir.create("figures_5_5", showWarnings = FALSE)
 
-# ---------------------------------------------------------------------
 # 5.5.2 Data and initial model
-# ---------------------------------------------------------------------
 d <- read.csv("cereal.csv", stringsAsFactors = FALSE)
 d[d == -1] <- NA                                   # -1 codes a missing value
 for (v in c("carbo", "sugars", "potass"))          # median imputation (Section 3)
@@ -21,7 +17,6 @@ vars <- c("calories", "protein", "fat", "sodium", "fiber",
 a <- d[, vars]                                     # 9 nutrition variables + rating
 rownames(a) <- rownames(d)
 ten <- setNames(d$name, rownames(d))               # product name by row name
-cat("n =", nrow(a), "\n")                           # 77
 
 set.seed(69)                                       # 80/20 split
 index <- sample(1:nrow(a), size = 0.8 * nrow(a))
@@ -32,9 +27,7 @@ m1 <- lm(rating ~ calories + protein + fat + sodium + fiber +
            carbo + sugars + potass + vitamins, data = train)
 summary(m1)                                        # R2 = 0.9929, adj. R2 = 0.9917, RSE = 1.213
 
-# ---------------------------------------------------------------------
 # 5.5.3 Handling multicollinearity (Table 5.5.1)
-# ---------------------------------------------------------------------
 round(vif(m1), 4)                                  # calories, fiber, carbo, sugars > 10
 cor(a$fiber, a$potass)                             # 0.91
 
@@ -51,15 +44,11 @@ AIC(m1, m2, m2_nofiber, m3, m4)                    # 307.31 (drop fiber) vs 224.
 BIC(m3, m4)
 anova(m4, m3)                                      # F test, p = 0.884
 
-# ---------------------------------------------------------------------
 # 5.5.4 Final model (Table 5.5.2)
-# ---------------------------------------------------------------------
 summary(m4)                                        # R2 = 0.9901, adj. R2 = 0.9890, F = 900.9
 round(confint(m4), 4)
 
-# ---------------------------------------------------------------------
 # 5.5.5 Assumption checking (Table 5.5.3, Figures 5.5.1 - 5.5.3)
-# ---------------------------------------------------------------------
 diag_table <- function(m, name) {
   n <- nrow(model.frame(m)); p <- length(coef(m))
   cd <- cooks.distance(m); r <- rstandard(m)
@@ -111,9 +100,7 @@ dev.off()
 m4_wo <- update(m4, data = train[rownames(train) != "58", ])
 round(coef(m4_wo), 4)                              # sugars -1.790, fat -3.963
 
-# ---------------------------------------------------------------------
 # 5.5.6 Prediction performance on the test set (Table 5.5.4, Figure 5.5.4)
-# ---------------------------------------------------------------------
 perf <- function(m, dat) {
   p <- predict(m, newdata = dat); y <- dat$rating
   c(RMSE = sqrt(mean((y - p)^2)), MAE = mean(abs(y - p)),
@@ -129,9 +116,7 @@ plot(test$rating, pr, pch = 19, col = "steelblue",
 abline(0, 1, col = "red", lwd = 2)
 dev.off()
 
-# ---------------------------------------------------------------------
 # 5.5.7 Prediction for a new cereal (Table 5.5.5)
-# ---------------------------------------------------------------------
 new <- data.frame(protein = 8, fat = 2.5, sodium = 210, fiber = 2, sugars = 12, vitamins = 25)
 predict(m4, newdata = new, interval = "prediction", level = 0.95)   # 35.26 (31.66, 38.87)
 predict(m4, newdata = new, interval = "confidence", level = 0.95)   # (32.99, 37.54)
@@ -145,5 +130,3 @@ sapply(a[, c("protein", "fat", "sodium", "fiber", "sugars", "vitamins")], range)
 
 # Same cereal with protein = 3 g (inside the data range)
 predict(m4, newdata = transform(new, protein = 3), interval = "prediction", level = 0.95)  # (23.07, 28.87)
-
-sessionInfo()
